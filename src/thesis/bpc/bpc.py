@@ -1,5 +1,5 @@
-from thesis.method_two.decoder import decode
-from thesis.method_two.encoder import encode
+from thesis.bpc.decoder import decode
+from thesis.bpc.encoder import encode
 
 from transformers import pipeline
 

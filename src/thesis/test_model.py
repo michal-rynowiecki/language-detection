@@ -1,7 +1,8 @@
 import pandas as pd
+import numpy as np
 
 from thesis.method_one.tok import tokenizer_based
-from thesis.method_two.bpc import bpc_based
+from thesis.bpc.bpc import bpc_based
 import thesis.paths as paths
 
 def test_model(model_path, method='all', languages='test'):

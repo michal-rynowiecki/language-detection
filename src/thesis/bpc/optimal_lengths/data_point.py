@@ -13,6 +13,7 @@ import json
 
 def str_len(model_path, lang):
     Path(f'{paths.DATA_DIR}/data_point_lengths/{model_path}').mkdir(parents=True, exist_ok=True)
+
     # Get full language name from the current langauge id
     configs = datasets.get_dataset_config_names('cis-lmu/glotlid-corpus')
 
@@ -39,10 +40,6 @@ def str_len(model_path, lang):
     f.write(str(language_flag) + '\n')
     i = 0  
     for text in dataset['train']['text']:
-        print(i)
-        if i == 5:
-            break
-        
         # Tokenize normally with special tokens
         inputs = tokenizer(text, return_tensors='pt')
         labels = inputs['input_ids'].clone()
@@ -51,7 +48,8 @@ def str_len(model_path, lang):
 
         loss_points = []
         for idx, t in enumerate(labels[0]):
-            if t.item() in (101, 102):               # Skip the start and stop tokens
+            # Skip the start and stop tokens
+            if t.item() in (101, 102):
                 continue
             
             c_inputs = tokenizer(text, return_tensors='pt')
