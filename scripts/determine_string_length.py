@@ -10,7 +10,7 @@ import numpy as np
 from thesis.bpc.optimal_lengths.data_point import str_len
 
 def main():
-    parser = argparse.ArgumentParser(description="Run detection pipeline")
+    parser = argparse.ArgumentParser(description="Determine BPC for a given language and token")
     
     parser.add_argument("-lm", "--language_model", required=True, help="Hugging Face model name")
     parser.add_argument("-l", "--language", required=True, help="Languages to test for")
@@ -28,7 +28,7 @@ def main():
 
     print(lang)
     # Run the src testing methods for the selected model
-    #str_len(args.language_model, lang=language)
+    str_len(args.language_model, lang=language)
 
 main()
 
