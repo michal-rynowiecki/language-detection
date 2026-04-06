@@ -24,6 +24,6 @@ def main():
     language_model  = args.language_model
 
     # Run the src method for determining optimal number of data points
-    lang_len(args.language_model, encoder=False)
+    lang_len(args.language_model, encoder=True)
 
 main()
