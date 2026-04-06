@@ -75,9 +75,23 @@ def encoder_full_loss(tokenizer, model, text, batch_size=16):
     bpc = single_data_point_loss / (len(text) * np.log(2))
     return bpc
 
-def decoder_full_loss(tokenizer, model, batch):
+def decoder_full_loss(tokenizer, model, text):
     model.eval()
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = model.device
+
+    inputs = tokenizer(text, return_tensors='pt')
+    labels = inputs["input_ids"].clone()
+    labels[inputs["attention_mask"] == 0] = -100
+
+    with torch.no_grad():
+        output = model(**inputs, labels=labels)
+    
+    num_valid_tokens = (labels != -100).sum()
+    total_loss = output.loss.item() * num_valid_tokens
+
+    bpc = (total_loss * len(num_valid_tokens)) / (len(text) * math.log(2))
+
+    return bpc
 
     
 '''
@@ -143,42 +157,39 @@ def lang_len(lm, alpha=0.1, encoder=True):
         rang = 5
 
         # 3. calculate bpc
-        # 3a) if encoder, go through datapoints one by one
-        if encoder:
-            for data_point in dataset['train']:
-                # Maintain the number of traversed points
-                n += 1
+        for data_point in dataset['train']:
+            # Maintain the number of traversed points
+            n += 1
+            # 3a) if encoder, go through datapoints one by one
+            if encoder:    
                 # Retrieve the BPC for the current data point
                 res = encoder_full_loss(tokenizer, model, data_point['text'])
-                
-                # Add the average and the result to a list for points
-                bpc.append(res)
-                
-                avg_val = sum(bpc) / len(bpc)
-                avg_bpc.append(avg_val)
 
-                # If the change within the last rang points is below alpha
-                # stop the iteration and append the length required
-                if len(bpc) >= rang:
-                    if within_range(avg_bpc[n-rang:n], alpha):
-                        len_dict[language[0]] = (n, avg_val)
+            # 3b) if decoder, still go one by one since the avg needs to be
+            # calculated for every single data point
+            if not encoder:
+                res = decoder_full_loss(tokenizer, model, data_point['text'])
 
-                        # Write JSON to the language presence corresponding file
-                        if present:
-                            with open(dir_path / f"{alpha}_present.json", "a") as f:
-                                json.dump({language[0]: {"n": n, "avg_bpc": avg_val}}, f)
-                                f.write("\n")
-                        else:
-                            with open(dir_path / f"{alpha}_not_present.json", "a") as f:
-                                json.dump({language[0]: {"n": n, "avg_bpc": avg_val}}, f)
-                                f.write("\n")
-                        break
-                
-                print(f'Average BPC at {n} points:', sum(bpc)/len(bpc))
-
-        # 3b) if decoder, go through datapoints in batches
-        if not encoder:
-            n += 1
+            # Add the average and the result to a list for points
+            bpc.append(res)
             
+            avg_val = sum(bpc) / len(bpc)
+            avg_bpc.append(avg_val)
+            
+            print(f'Average BPC at {n} points:', sum(bpc)/len(bpc))
+            # If the change within the last rang points is below alpha
+            # stop the iteration and append the length required
+            if len(bpc) >= rang:
+                if within_range(avg_bpc[n-rang:n], alpha):
+                    len_dict[language[0]] = (n, avg_val)
 
-            # res = ...
+                    # Write JSON to the language presence corresponding file
+                    if present:
+                        with open(dir_path / f"{alpha}_present.json", "a") as f:
+                            json.dump({language[0]: {"n": n, "avg_bpc": avg_val}}, f)
+                            f.write("\n")
+                    else:
+                        with open(dir_path / f"{alpha}_not_present.json", "a") as f:
+                            json.dump({language[0]: {"n": n, "avg_bpc": avg_val}}, f)
+                            f.write("\n")
+                    break
