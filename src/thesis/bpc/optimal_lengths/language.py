@@ -127,53 +127,52 @@ def lang_len(lm, alpha=0.1, encoder=True):
     
     len_dict = {}
     for present, language in languages_to_check:
-        if present:
-            print(language)
-            # 1. get dataset
-            dataset = datasets.load_dataset('cis-lmu/glotlid-corpus', language[0]).shuffle()
+        print(language)
+        # 1. get dataset
+        dataset = datasets.load_dataset('cis-lmu/glotlid-corpus', language[0]).shuffle()
 
-            # 2. create an empty list for bpc
-            n = 0
-            bpc = []
-            avg_bpc = []
-            rang = 5
+        # 2. create an empty list for bpc
+        n = 0
+        bpc = []
+        avg_bpc = []
+        rang = 5
 
-            # 3. calculate bpc
-            # 3a) if encoder, go through datapoints one by one
-            if encoder:
-                for data_point in dataset['train']:
-                    # Maintain the number of traversed points
-                    n += 1
-                    # Retrieve the BPC for the current data point
-                    res = encoder_full_loss(tokenizer, model, data_point['text'])
-                    
-                    # Add the average and the result to a list for points
-                    bpc.append(res)
-                    
-                    avg_val = sum(bpc) / len(bpc)
-                    avg_bpc.append(avg_val)
-
-                    # If the change within the last rang points is below alpha
-                    # stop the iteration and append the length required
-                    if len(bpc) >= rang:
-                        if within_range(avg_bpc[n-rang:n], alpha):
-                            len_dict[language[0]] = (n, avg_val)
-
-                            # Write JSON to the language presence corresponding file
-                            if present:
-                                with open(dir_path / f"{alpha}_present.json", "a") as f:
-                                    json.dump({language[0]: {"n": n, "avg_bpc": avg_val}}, f)
-                                    f.write("\n")
-                            else:
-                                with open(dir_path / f"{alpha}_not_present.json", "a") as f:
-                                    json.dump({language[0]: {"n": n, "avg_bpc": avg_val}}, f)
-                                    f.write("\n")
-                            break
-                    
-                    print(f'Average BPC at {n} points:', sum(bpc)/len(bpc))
-
-            # 3b) if decoder, go through datapoints in batches
-            if not encoder:
+        # 3. calculate bpc
+        # 3a) if encoder, go through datapoints one by one
+        if encoder:
+            for data_point in dataset['train']:
+                # Maintain the number of traversed points
                 n += 1
+                # Retrieve the BPC for the current data point
+                res = encoder_full_loss(tokenizer, model, data_point['text'])
+                
+                # Add the average and the result to a list for points
+                bpc.append(res)
+                
+                avg_val = sum(bpc) / len(bpc)
+                avg_bpc.append(avg_val)
 
-                # res = ...
+                # If the change within the last rang points is below alpha
+                # stop the iteration and append the length required
+                if len(bpc) >= rang:
+                    if within_range(avg_bpc[n-rang:n], alpha):
+                        len_dict[language[0]] = (n, avg_val)
+
+                        # Write JSON to the language presence corresponding file
+                        if present:
+                            with open(dir_path / f"{alpha}_present.json", "a") as f:
+                                json.dump({language[0]: {"n": n, "avg_bpc": avg_val}}, f)
+                                f.write("\n")
+                        else:
+                            with open(dir_path / f"{alpha}_not_present.json", "a") as f:
+                                json.dump({language[0]: {"n": n, "avg_bpc": avg_val}}, f)
+                                f.write("\n")
+                        break
+                
+                print(f'Average BPC at {n} points:', sum(bpc)/len(bpc))
+
+        # 3b) if decoder, go through datapoints in batches
+        if not encoder:
+            n += 1
+
+            # res = ...
