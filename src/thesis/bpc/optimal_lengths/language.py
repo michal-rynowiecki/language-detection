@@ -32,7 +32,7 @@ batch_size: int - size to which divide up the matrix resulting from
 '''
 def encoder_full_loss(tokenizer, model, text, batch_size=16):
     model.eval()
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = model.device
 
     inputs = tokenizer(text, return_tensors='pt')
     full_ids = inputs['input_ids'][0]
@@ -66,8 +66,8 @@ def encoder_full_loss(tokenizer, model, text, batch_size=16):
     with torch.no_grad():
         for b, l in zip(new_batch, new_labels):
             # Send to GPU (if available)
-            b.to(device)
-            l.to(device)
+            b = b.to(device)
+            l = l.to(device)
             output = model(b, labels=l)
             single_data_point_loss += output.loss.item() * b.shape[0]
 
@@ -75,6 +75,11 @@ def encoder_full_loss(tokenizer, model, text, batch_size=16):
     bpc = single_data_point_loss / (len(text) * np.log(2))
     return bpc
 
+def decoder_full_loss(tokenizer, model, batch):
+    model.eval()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    
 '''
 Takes in a list of X BPC values each representing the average at a particular
 number of data points being calculated, then determined if they stay within
@@ -174,5 +179,6 @@ def lang_len(lm, alpha=0.1, encoder=True):
         # 3b) if decoder, go through datapoints in batches
         if not encoder:
             n += 1
+            
 
             # res = ...
