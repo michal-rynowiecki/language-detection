@@ -26,7 +26,6 @@ def main():
     # Convert full language names (referant names) to id names for filtering the datasets later on. Need different ISO formats because of Hugging Face's lack of consistency
     lang = np.squeeze(lang_df.loc[lang_df['Id'] == language[:3]][['Id', 'Part2b', 'Part2t', 'Part1']].values.tolist())
 
-    print(lang)
     # Run the src testing methods for the selected model
     str_len(args.language_model, lang=language)
 
