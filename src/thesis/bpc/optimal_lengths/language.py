@@ -114,7 +114,7 @@ def within_range(bpcs, prob):
     outcome = (spread / avg_val) <= prob
     return outcome
 
-def lang_len(lm, alpha=0.1, encoder=True):
+def lang_len(lm, alpha=0.1, rang=5, encoder=True):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     tokenizer = AutoTokenizer.from_pretrained(lm)
@@ -150,7 +150,7 @@ def lang_len(lm, alpha=0.1, encoder=True):
         dataset = datasets.load_dataset(str(paths.GLOTLID), language[0]).shuffle()
 
         # 2. create variables for calculating bpc
-        n, rang = 0, 5
+        n = 0
         bpc, avg_bpc = [], []
 
         # 3. calculate bpc
