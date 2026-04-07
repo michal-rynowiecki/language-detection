@@ -92,7 +92,6 @@ def decoder_full_loss(tokenizer, model, text):
     bpc = (total_loss * len(num_valid_tokens)) / (len(text) * math.log(2))
 
     return bpc
-
     
 '''
 Takes in a list of X BPC values each representing the average at a particular
@@ -113,7 +112,6 @@ def within_range(bpcs, prob):
     spread = max(bpcs) - min(bpcs)
 
     outcome = (spread / avg_val) <= prob
-
     return outcome
 
 def lang_len(lm, alpha=0.1, encoder=True):
@@ -128,7 +126,8 @@ def lang_len(lm, alpha=0.1, encoder=True):
     dir_path.mkdir(parents=True, exist_ok=True)
 
     # Get full language name from the current langauge id
-    configs = datasets.get_dataset_config_names('cis-lmu/glotlid-corpus')
+    #configs = datasets.get_dataset_config_names('cis-lmu/glotlid-corpus') # Online
+    configs = datasets.get_dataset_config_names(str(paths.GLOTLID)) # Offline
 
     model_languages = ModelCard.load(lm).data['language']
 
@@ -148,13 +147,11 @@ def lang_len(lm, alpha=0.1, encoder=True):
     for present, language in languages_to_check:
         print(language)
         # 1. get dataset
-        dataset = datasets.load_dataset('cis-lmu/glotlid-corpus', language[0]).shuffle()
+        dataset = datasets.load_dataset(str(paths.GLOTLID), language[0]).shuffle()
 
-        # 2. create an empty list for bpc
-        n = 0
-        bpc = []
-        avg_bpc = []
-        rang = 5
+        # 2. create variables for calculating bpc
+        n, rang = 0, 5
+        bpc, avg_bpc = [], []
 
         # 3. calculate bpc
         for data_point in dataset['train']:
@@ -172,24 +169,17 @@ def lang_len(lm, alpha=0.1, encoder=True):
 
             # Add the average and the result to a list for points
             bpc.append(res)
-            
             avg_val = sum(bpc) / len(bpc)
             avg_bpc.append(avg_val)
-            
             print(f'Average BPC at {n} points:', sum(bpc)/len(bpc))
+
             # If the change within the last rang points is below alpha
             # stop the iteration and append the length required
-            if len(bpc) >= rang:
-                if within_range(avg_bpc[n-rang:n], alpha):
-                    len_dict[language[0]] = (n, avg_val)
+            if len(bpc) >= rang and within_range(avg_bpc[n-rang:n], alpha):
+                len_dict[language[0]] = (n, avg_val)
 
-                    # Write JSON to the language presence corresponding file
-                    if present:
-                        with open(dir_path / f"{alpha}_present.json", "a") as f:
-                            json.dump({language[0]: {"n": n, "avg_bpc": avg_val}}, f)
-                            f.write("\n")
-                    else:
-                        with open(dir_path / f"{alpha}_not_present.json", "a") as f:
-                            json.dump({language[0]: {"n": n, "avg_bpc": avg_val}}, f)
-                            f.write("\n")
-                    break
+                # Write JSON to the language presence corresponding file
+                with open(dir_path / f"{alpha}_{present}_present.json", "a") as f:
+                    json.dump({language[0]: {"n": n, "avg_bpc": avg_val}}, f)
+                    f.write("\n")
+                break

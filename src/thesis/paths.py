@@ -4,3 +4,4 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 DATA_DIR = PROJECT_ROOT / "data"
 SRC_DIR = PROJECT_ROOT / "src"
+GLOTLID = DATA_DIR / "glotlid-corpus"
