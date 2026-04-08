@@ -34,7 +34,13 @@ def encoder_full_loss(tokenizer, model, text, batch_size=16):
     model.eval()
     device = model.device
 
-    inputs = tokenizer(text, return_tensors='pt')
+    inputs = tokenizer(
+        text, 
+        return_tensors='pt',
+        truncation=True,
+        max_length=tokenizer.model_max_length
+    )
+
     full_ids = inputs['input_ids'][0]
 
     # Create a batch with a row for each length
@@ -179,7 +185,18 @@ def lang_len(lm, alpha=0.1, rang=5, encoder=True):
                 len_dict[language[0]] = (n, avg_val)
 
                 # Write JSON to the language presence corresponding file
-                with open(dir_path / f"{alpha}_{present}_present.json", "a") as f:
+                with open(dir_path / f"{alpha}_{rang}_{present}_present.json", "a") as f:
                     json.dump({language[0]: {"n": n, "avg_bpc": avg_val}}, f)
                     f.write("\n")
                 break
+
+def calc_stats_single():
+    # 1. Read in the data for a single model; present/not present
+    # 2. Get the distribution
+    # 3. Get the peak of the distribution
+    # 4. Calculate variance
+    1
+
+def calc_stats_multi():
+    # 
+    1
