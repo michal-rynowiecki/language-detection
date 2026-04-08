@@ -12,7 +12,7 @@ import thesis.paths as paths
 import pandas as pd
 import numpy as np
 
-from thesis.bpc.optimal_lengths.language import lang_len
+from thesis.bpc.optimal_lengths.language import lang_len, calc_stats_single
 
 def main():
     parser = argparse.ArgumentParser(description="Determine BPC for a given language and token")
@@ -37,6 +37,8 @@ def main():
     encoder = args.encoder
     
     # Run the src method for determining optimal number of data points
-    lang_len(args.language_model, alpha, rang, encoder)
+    #lang_len(args.language_model, alpha, rang, encoder)
+
+    calc_stats_single('/Users/michal/Projects/Thesis/data/lang_lengths/google-bert/bert-base-multilingual-cased/0.1_False_present.json')
 
 main()

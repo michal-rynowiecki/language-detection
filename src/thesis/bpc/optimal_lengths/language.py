@@ -153,8 +153,12 @@ def lang_len(lm, alpha=0.1, rang=5, encoder=True):
     for present, language in languages_to_check:
         print(language)
         # 1. get dataset
-        dataset = datasets.load_dataset(str(paths.GLOTLID), language[0]).shuffle()
-
+        # had to add the try except because some languages seem to be bugged
+        try:
+            dataset = datasets.load_dataset(str(paths.GLOTLID), language[0]).shuffle()
+        except:
+            print(f"Can't read in {language}")
+            continue
         # 2. create variables for calculating bpc
         n = 0
         bpc, avg_bpc = [], []
@@ -190,8 +194,13 @@ def lang_len(lm, alpha=0.1, rang=5, encoder=True):
                     f.write("\n")
                 break
 
-def calc_stats_single():
+def calc_stats_single(file_path):
     # 1. Read in the data for a single model; present/not present
+    with open(file_path, 'r') as f:
+        for line in f:
+            curr = json.loads(line)
+            for key, value in curr.items():
+                print(key, value['n'])
     # 2. Get the distribution
     # 3. Get the peak of the distribution
     # 4. Calculate variance
