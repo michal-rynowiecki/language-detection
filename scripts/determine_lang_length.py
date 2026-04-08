@@ -26,7 +26,7 @@ def main():
     parser.add_argument("-r", "--rang", type=int, default=5,
         help="Number of consecutive values")
 
-    parser.add_argument("-en", "--encoder", type=bool, default=True,
+    parser.add_argument("-en", "--encoder", action="store_true",
         help="Is the model an encoder?")
    
     args = parser.parse_args()
@@ -36,6 +36,8 @@ def main():
     rang = args.rang
     encoder = args.encoder
     
+    parser.set_defaults(encoder=False)
+
     # Run the src method for determining optimal number of data points
     lang_len(args.language_model, alpha, rang, encoder)
 

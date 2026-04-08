@@ -5,6 +5,8 @@
 
 import thesis.paths as paths
 
+import math
+
 import numpy as np
 import pandas as pd
 import torch
@@ -16,7 +18,7 @@ import json
 import datasets
 from huggingface_hub import ModelCard
 
-from transformers import AutoModelForMaskedLM, AutoTokenizer
+from transformers import AutoModelForMaskedLM, AutoModelForCausalLM, AutoTokenizer
 
 '''
 Takes in a model for Masked LM and returns the loss obtained by
@@ -88,19 +90,28 @@ def decoder_full_loss(tokenizer, model, text):
     model.eval()
     device = model.device
 
-    inputs = tokenizer(text, return_tensors='pt')
+    # Check if the model needs to do truncation (some don't have a max length set)
+    # (the 100000 is arbitrary but i don't think there's any longer data points in the dataset)
+    kwargs = {"return_tensors": "pt"}
+    if tokenizer.model_max_length < 100000:
+        kwargs.update({
+            "truncation": True,
+            "max_length": tokenizer.model_max_length,
+        })
+    inputs = tokenizer(text, **kwargs)
+    
     labels = inputs["input_ids"].clone()
     labels[inputs["attention_mask"] == 0] = -100
-
+    
     with torch.no_grad():
         output = model(**inputs, labels=labels)
     
     num_valid_tokens = (labels != -100).sum()
     total_loss = output.loss.item() * num_valid_tokens
 
-    bpc = (total_loss * len(num_valid_tokens)) / (len(text) * math.log(2))
+    bpc = total_loss / (len(text) * math.log(2))
 
-    return bpc
+    return bpc.item()
     
 '''
 Takes in a list of X BPC values each representing the average at a particular
@@ -124,11 +135,13 @@ def within_range(bpcs, prob):
     return outcome
 
 def lang_len(lm, alpha=0.1, rang=5, encoder=True):
+    print(encoder)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
     tokenizer = AutoTokenizer.from_pretrained(lm)
-    model = AutoModelForMaskedLM.from_pretrained(lm)
-    model.to(device)
+
+    # load in the model based on if its an encoder or not
+    ModelClass = AutoModelForMaskedLM if encoder else AutoModelForCausalLM
+    model = ModelClass.from_pretrained(lm).to(device)
 
     # Open files for writing in data
     dir_path = Path(paths.DATA_DIR) / "lang_lengths" / lm
