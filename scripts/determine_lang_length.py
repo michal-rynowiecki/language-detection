@@ -37,8 +37,8 @@ def main():
     encoder = args.encoder
     
     # Run the src method for determining optimal number of data points
-    #lang_len(args.language_model, alpha, rang, encoder)
+    lang_len(args.language_model, alpha, rang, encoder)
 
-    calc_stats_single('/Users/michal/Projects/Thesis/data/lang_lengths/google-bert/bert-base-multilingual-cased/0.1_False_present.json')
+    #calc_stats_single('/Users/michal/Projects/Thesis/data/lang_lengths/google-bert/bert-base-multilingual-cased/0.1_False_present.json')
 
 main()
