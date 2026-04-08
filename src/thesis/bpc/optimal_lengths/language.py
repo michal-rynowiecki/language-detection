@@ -34,13 +34,16 @@ def encoder_full_loss(tokenizer, model, text, batch_size=16):
     model.eval()
     device = model.device
 
-    inputs = tokenizer(
-        text, 
-        return_tensors='pt',
-        truncation=True,
-        max_length=tokenizer.model_max_length
-    )
-
+    # Check if the model needs to do truncation (some don't have a max length set)
+    # (the 100000 is arbitrary but i don't think there's any longer data points in the dataset)
+    kwargs = {"return_tensors": "pt"}
+    if tokenizer.model_max_length < 100000:
+        kwargs.update({
+            "truncation": True,
+            "max_length": tokenizer.model_max_length,
+        })
+    
+    inputs = tokenizer(text, **kwargs)
     full_ids = inputs['input_ids'][0]
 
     # Create a batch with a row for each length
@@ -196,16 +199,28 @@ def lang_len(lm, alpha=0.1, rang=5, encoder=True):
 
 def calc_stats_single(file_path):
     # 1. Read in the data for a single model; present/not present
+    population = []
     with open(file_path, 'r') as f:
         for line in f:
             curr = json.loads(line)
             for key, value in curr.items():
-                print(key, value['n'])
+                print(value['n'])
+                population.append(value['n'])
+    population = np.array(population, dtype=int)
+
     # 2. Get the distribution
+    values = np.bincount(population)
+
     # 3. Get the peak of the distribution
+    peak = values.max()
+
     # 4. Calculate variance
-    1
+    variance = population.var()
+    std_dev = population.std()
+    mean = population.mean()
+    print('variance: ', variance)
+    print('std:', std_dev)
+    print('mean: ', mean)
 
 def calc_stats_multi():
-    # 
     1
