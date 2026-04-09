@@ -1,11 +1,13 @@
-# Select a language and a model and its calculated 
-# Calculate the BPC for a data point
-# Add to a list of totals
-# if the change from the last 5 points is not significant, stop
-
 import thesis.paths as paths
 
 import math
+
+from collections import defaultdict
+
+import matplotlib.pyplot as plt
+
+from scipy.stats import gaussian_kde
+from scipy.signal import savgol_filter
 
 import numpy as np
 import pandas as pd
@@ -99,7 +101,7 @@ def decoder_full_loss(tokenizer, model, text):
             "max_length": tokenizer.model_max_length,
         })
     inputs = tokenizer(text, **kwargs)
-    
+
     labels = inputs["input_ids"].clone()
     labels[inputs["attention_mask"] == 0] = -100
     
@@ -213,27 +215,143 @@ def lang_len(lm, alpha=0.1, rang=5, encoder=True):
 def calc_stats_single(file_path):
     # 1. Read in the data for a single model; present/not present
     population = []
+    bpcs = []
     with open(file_path, 'r') as f:
         for line in f:
             curr = json.loads(line)
             for key, value in curr.items():
-                print(value['n'])
                 population.append(value['n'])
+                bpcs.append(value['avg_bpc'])
     population = np.array(population, dtype=int)
-
+    bpcs = np.array(bpcs, dtype=float)
+    
     # 2. Get the distribution
     values = np.bincount(population)
+    values = values/sum(values)
 
     # 3. Get the peak of the distribution
-    peak = values.max()
+    peak = np.argmax(values)
 
     # 4. Calculate variance
-    variance = population.var()
-    std_dev = population.std()
+    variance = bpcs.var()
+    std_dev = bpcs.std()
     mean = population.mean()
+    print(file_path)
+    print('peak: ', peak)
     print('variance: ', variance)
     print('std:', std_dev)
     print('mean: ', mean)
+    plt.figure()
 
-def calc_stats_multi():
-    1
+    
+    return population
+
+def calc_stats_multi(dir_path):
+    folder = Path(dir_path)
+
+    # Dictionary containing populations for each setting of languages lengths
+    all_populations = {}
+    for file in folder.iterdir():
+        if file.is_file():
+            name=str(file).split('/')[-1]
+            if '_5_True' in name:
+                all_populations[str(file).split('/')[-1]] = calc_stats_single(file)
+    
+    plt.figure()
+
+    all_data = np.concatenate(list(all_populations.values()))
+    x_smooth = np.linspace(min(all_data), min(max(all_data), 300), 500)
+
+    for label, population in all_populations.items():
+        kde = gaussian_kde(population)
+        y_smooth = kde(x_smooth)
+        
+        plt.plot(x_smooth, y_smooth, label=label)
+
+    plt.title("KDE Smoothed PDFs")
+    plt.xlim(0, 300) 
+    plt.legend()
+    plt.show()
+
+def plot_bpc_vs_n(file):
+    bpc_dict = defaultdict(list)
+    with open(file, 'r') as f:
+        for line in f:
+            curr = json.loads(line)
+            for key, value in curr.items():
+                bpc_dict[value['n']].append(value['avg_bpc'])
+
+    population = []
+    bpcs = []
+    with open(file, 'r') as f:
+        for line in f:
+            curr = json.loads(line)
+            for key, value in curr.items():
+                population.append(value['n'])
+                bpcs.append(value['avg_bpc'])
+    population = np.array(population, dtype=int)
+    bpcs = np.array(bpcs, dtype=float)
+    
+    # 2. Get the distribution
+    values = np.bincount(population)
+    values = values/sum(values)
+
+    # 3. Get the peak of the distribution
+    peak = np.argmax(values)
+
+    # 4. Calculate variance
+    variance = bpcs.var()
+    std_dev = bpcs.std()
+    mean = population.mean()
+
+    # Extract only existing lengths and sort them
+    lengths = sorted(bpc_dict.keys())
+    
+    # Calculate the mean only for lengths that exist
+    avg_bpc = [np.mean(bpc_dict[l]) for l in lengths]
+    
+    x = np.array(lengths)
+    y = np.array(avg_bpc)
+
+    # window_length must be odd. polyorder is the degree of the polynomial.
+    # Tweak these two numbers to increase/decrease the smoothing effect.
+    y_smoothed = savgol_filter(y, window_length=11, polyorder=3)
+
+    # Create the figure and the primary axis (ax1)
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+
+    # --- AXIS 1: The BPC Data (Left side) ---
+    color1 = 'tab:blue'
+    ax1.set_xlabel('Number of data points (n)')
+    ax1.set_ylabel('Average BPC', color=color1)
+
+    # Note: 'x' and 'y' here would be your lengths and smoothed BPC from the previous step
+    ax1.plot(x, y_smoothed, color=color1, linewidth=2, label='Avg. BPC')
+    ax1.tick_params(axis='y', labelcolor=color1)
+
+    # --- AXIS 2: The Distribution/PDF (Right side) ---
+    ax2 = ax1.twinx()  # This is the magic line that creates the right-hand axis
+
+    color2 = 'tab:red'
+    ax2.set_ylabel('Population Density (PDF)', color=color2)
+
+    # np.bincount inherently starts at 0, so the x-axis for the PDF is just its length
+    x_pdf = np.arange(len(values))
+
+    # Plotting the PDF. A dashed line or bar chart usually looks best for distributions
+    ax2.plot(x_pdf, values, color=color2, alpha=0.7, label='Distribution')
+    ax2.tick_params(axis='y', labelcolor=color2)
+
+    # --- Clean up and Show ---
+    # If your arrays have different max lengths, you might want to set a shared x-limit
+    max_x = max(len(y_smoothed), len(values))
+    ax1.set_xlim(0, max_x)
+
+    # Combine legends from both axes
+    lines_1, labels_1 = ax1.get_legend_handles_labels()
+    lines_2, labels_2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='upper left')
+
+    plt.title("Average BPC and Population Distribution vs Number of Samples")
+    fig.tight_layout() # Prevents the right y-label from getting clipped off the screen
+    plt.show()

@@ -17,11 +17,7 @@ masking each token seperately in a batch
 '''
 def encoder_full_loss(model, input):
     inputs = tokenizer(text, return_tensors='pt')
-    #labels = inputs['input_ids'].clone()
     full_ids = inputs['input_ids'][0]
-
-    print('Inputs: ', inputs)
-    print('FULL IDS: ', full_ids)
 
     # Create a batch with a row for each length
     batch = full_ids.unsqueeze(0).repeat(len(full_ids), 1)
@@ -57,10 +53,10 @@ def str_len(model_path, lang):
     # Check if current language is present in the model training data
     if not isinstance(model_languages, list):
         model_languages = [model_languages]
+
     language_flag = any(model_language in l[1] for model_language in model_languages)
     
     tokenizer = BertTokenizer.from_pretrained(model_path)
-
     model =  BertForMaskedLM.from_pretrained(model_path)
 
     dataset = datasets.load_dataset('cis-lmu/glotlid-corpus', l[0])
