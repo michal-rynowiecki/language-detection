@@ -13,7 +13,7 @@ import pandas as pd
 import numpy as np
 
 from thesis.bpc.optimal_lengths.language import lang_len
-from thesis.bpc.optimal_lengths.plot import calc_stats_single, plot_bpc_vs_n
+from thesis.bpc.optimal_lengths.plot import calc_stats_single, plot_bpc_vs_n, plot_true_vs_false
 
 def main():
     parser = argparse.ArgumentParser(description="Determine BPC for a given language and token")
@@ -44,5 +44,6 @@ def main():
 
     #calc_stats_single('/Users/michal/Projects/Thesis/data/lang_lengths/bert-base-multilingual-cased')
     #plot_bpc_vs_n('/Users/michal/Projects/Thesis/data/lang_lengths/bert-base-multilingual-cased/0.01_5_True_present.json')
+    €plot_true_vs_false('/Users/michal/Projects/Thesis/data/lang_lengths/bert-base-multilingual-cased/0.001_20_True_present.json', '/Users/michal/Projects/Thesis/data/lang_lengths/bert-base-multilingual-cased/0.001_20_False_present.json')
 
 main()

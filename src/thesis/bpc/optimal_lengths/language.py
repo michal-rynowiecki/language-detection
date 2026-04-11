@@ -27,7 +27,7 @@ text: str       - text input; not tokenized
 batch_size: int - size to which divide up the matrix resulting from
                   creating a len(sentence)xlen(sentence) matrix
 '''
-def encoder_full_loss(tokenizer, model, text, batch_size=16):
+def encoder_full_loss(tokenizer, model, text, batch_size=8):
     model.eval()
     device = model.device
 
@@ -67,7 +67,7 @@ def encoder_full_loss(tokenizer, model, text, batch_size=16):
     new_labels = torch.split(labels, batch_size)
 
     # This loop will accumulate the loss over all the
-    # 16 length batches
+    # batch_size length batches
     single_data_point_loss = 0
     with torch.no_grad():
         for b, l in zip(new_batch, new_labels):
@@ -76,6 +76,11 @@ def encoder_full_loss(tokenizer, model, text, batch_size=16):
             l = l.to(device)
             output = model(b, labels=l)
             single_data_point_loss += output.loss.item() * b.shape[0]
+            
+            # Keep the VRAM usage low
+            del output
+            del b
+            del l
 
     # Calculate BPC
     bpc = single_data_point_loss / (len(text) * np.log(2))
@@ -130,7 +135,6 @@ def within_range(bpcs, prob):
     return outcome
 
 def lang_len(lm, alpha=0.1, rang=5, encoder=True):
-
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     tokenizer = AutoTokenizer.from_pretrained(lm)
 

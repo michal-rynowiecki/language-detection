@@ -7,9 +7,25 @@ import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
 from scipy.signal import savgol_filter
 from scipy.ndimage import gaussian_filter1d
+from scipy import integrate
 
 from pathlib import Path
 import json
+
+def calculate_kde_overlap(kde_true, kde_false, x_range):
+    # 1. Evaluate both PDFs over the same range
+    pdf_true = kde_true(x_range)
+    pdf_false = kde_false(x_range)
+
+    # 2. Find the minimum value at every point along the x-axis
+    # This represents the "bottom" curve of the overlapping region
+    overlap_pdf = np.minimum(pdf_true, pdf_false)
+
+    # 3. Integrate using the trapezoidal rule
+    # np.trapz calculates the area under the 'overlap_pdf' curve
+    overlap_area = integrate.trapezoid(overlap_pdf, x_range)
+
+    return overlap_area
 
 def calc_stats_single(file_path):
     population = []
@@ -33,7 +49,7 @@ def calc_stats_single(file_path):
     std_dev = bpcs.std()
     mean = population.mean()
     
-    return population
+    return population, bpcs
 
 def avg_bpc_per_length(file_path):
     bpc_dict = defaultdict(list)
@@ -80,7 +96,7 @@ def calc_stats_multi(dir_path):
     plt.show()
 '''
 def plot_bpc_vs_n(file):
-    population = calc_stats_single(file)
+    population, _ = calc_stats_single(file)
 
     x, y = avg_bpc_per_length(file)
     y_smoothed = savgol_filter(y, window_length=11, polyorder=3)
@@ -127,3 +143,55 @@ def plot_bpc_vs_n(file):
     plt.title("Average BPC and Population Distribution vs Number of Samples")
     fig.tight_layout()
     plt.show()
+
+'''
+Plots the distribution of BPC for true and false languages
+'''
+def plot_true_vs_false(true_file, false_file):
+    # Assuming calc_stats_single returns (mean, list_of_bpcs)
+    _, true_bpcs = calc_stats_single(true_file)
+    _, false_bpcs = calc_stats_single(false_file)
+    
+    true_bpcs = np.array(true_bpcs)
+    false_bpcs = np.array(false_bpcs)
+
+    # 1. Create KDEs for both populations
+    kde_true = gaussian_kde(true_bpcs, bw_method='scott')
+    kde_false = gaussian_kde(false_bpcs, bw_method='scott')
+
+    # 2. Generate a smooth X-axis spanning the range of all data
+    all_data = np.concatenate([true_bpcs, false_bpcs])
+    x_range = np.linspace(all_data.min(), all_data.max(), 1000)
+
+    # 3. Evaluate the KDE curves
+    pdf_true = kde_true(x_range)
+    pdf_false = kde_false(x_range)
+
+    # 4. Find the Threshold (Intersection Point)
+    # This finds where the 'unseen' BPC starts becoming more likely than 'seen' BPC
+    idx = np.argwhere(np.diff(np.sign(pdf_true - pdf_false))).flatten()
+    threshold = x_range[idx[0]] if len(idx) > 0 else np.mean(all_data)
+
+    # 5. Plotting
+    plt.figure(figsize=(10, 6))
+    plt.plot(x_range, pdf_true, label='In Training (Seen)', color='teal', lw=2)
+    plt.fill_between(x_range, pdf_true, alpha=0.2, color='teal')
+    
+    plt.plot(x_range, pdf_false, label='Not in Training (Unseen)', color='crimson', lw=2)
+    plt.fill_between(x_range, pdf_false, alpha=0.2, color='crimson')
+
+    plt.axvline(threshold, color='black', linestyle='--', label=f'Threshold: {threshold:.3f}')
+    
+    plt.title('BPC Distribution: Seen vs. Unseen Languages')
+    plt.xlabel('Bits Per Character (BPC)')
+    plt.ylabel('Density')
+    plt.legend()
+    plt.grid(axis='y', alpha=0.3)
+    plt.show()
+
+    print(f"Suggested BPC Threshold: {threshold:.4f}")
+
+    x_range = np.linspace(all_data.min(), all_data.max(), 1000)
+    area = calculate_kde_overlap(kde_true, kde_false, x_range)
+    print(f"Overlap Area: {area:.4f}")
+    return threshold
