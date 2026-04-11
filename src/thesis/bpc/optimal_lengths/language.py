@@ -42,7 +42,7 @@ def encoder_full_loss(tokenizer, model, text, batch_size=8):
     
     inputs = tokenizer(text, **kwargs)
     full_ids = inputs['input_ids'][0]
-
+    print("Number of columns: ", ,len(full_ids))
     # Create a batch with a row for each length
     batch = full_ids.unsqueeze(0).repeat(len(full_ids), 1)
     labels = torch.full_like(batch, -100)
@@ -76,11 +76,6 @@ def encoder_full_loss(tokenizer, model, text, batch_size=8):
             l = l.to(device)
             output = model(b, labels=l)
             single_data_point_loss += output.loss.item() * b.shape[0]
-            
-            # Keep the VRAM usage low
-            del output
-            del b
-            del l
 
     # Calculate BPC
     bpc = single_data_point_loss / (len(text) * np.log(2))
