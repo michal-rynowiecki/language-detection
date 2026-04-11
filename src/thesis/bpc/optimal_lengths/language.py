@@ -33,12 +33,10 @@ def encoder_full_loss(tokenizer, model, text, batch_size=8):
 
     # Check if the model needs to do truncation (some don't have a max length set)
     # (the 100000 is arbitrary but i don't think there's any longer data points in the dataset)
-    kwargs = {"return_tensors": "pt"}
-    if tokenizer.model_max_length < 100000:
-        kwargs.update({
-            "truncation": True,
-            "max_length": tokenizer.model_max_length,
-        })
+    kwargs = {"return_tensors": "pt",
+                "truncation": True,
+                "max_length": 512
+            }
     
     inputs = tokenizer(text, **kwargs)
     full_ids = inputs['input_ids'][0]
