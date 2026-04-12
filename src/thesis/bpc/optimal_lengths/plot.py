@@ -67,34 +67,7 @@ def avg_bpc_per_length(file_path):
     avg_bpc = [np.mean(bpc_dict[l]) for l in lengths]
 
     return lengths, avg_bpc
-'''
-def calc_stats_multi(dir_path):
-    folder = Path(dir_path)
 
-    # Dictionary containing populations for each setting of languages lengths
-    all_populations = {}
-    for file in folder.iterdir():
-        if file.is_file():
-            name=str(file).split('/')[-1]
-            if '_5_True' in name:
-                all_populations[str(file).split('/')[-1]] = calc_stats_single(file)
-    
-    plt.figure()
-
-    all_data = np.concatenate(list(all_populations.values()))
-    x_smooth = np.linspace(min(all_data), min(max(all_data), 300), 500)
-
-    for label, population in all_populations.items():
-        kde = gaussian_kde(population)
-        y_smooth = kde(x_smooth)
-        
-        plt.plot(x_smooth, y_smooth, label=label)
-
-    plt.title("KDE Smoothed PDFs")
-    plt.xlim(0, 300) 
-    plt.legend()
-    plt.show()
-'''
 def plot_bpc_vs_n(file):
     population, _ = calc_stats_single(file)
 

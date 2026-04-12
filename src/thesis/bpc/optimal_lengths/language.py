@@ -27,20 +27,15 @@ text: str       - text input; not tokenized
 batch_size: int - size to which divide up the matrix resulting from
                   creating a len(sentence)xlen(sentence) matrix
 '''
-def encoder_full_loss(tokenizer, model, text, batch_size=8):
+def encoder_full_loss(inputs, tokenizer, model, text, batch_size=8):
     model.eval()
     device = model.device
 
     # Check if the model needs to do truncation (some don't have a max length set)
     # (the 100000 is arbitrary but i don't think there's any longer data points in the dataset)
-    kwargs = {"return_tensors": "pt",
-                "truncation": True,
-                "max_length": 512
-            }
-    
-    inputs = tokenizer(text, **kwargs)
     full_ids = inputs['input_ids'][0]
     print("Number of columns: ",len(full_ids))
+
     # Create a batch with a row for each length
     batch = full_ids.unsqueeze(0).repeat(len(full_ids), 1)
     labels = torch.full_like(batch, -100)
@@ -171,14 +166,24 @@ def lang_len(lm, alpha=0.1, rang=5, encoder=True):
         n = 0
         bpc, avg_bpc = [], []
 
-        # 3. calculate bpc
+        # 3. Calculate bpc
         for data_point in dataset['train']:
+            # Some data points that were too short were throwing errors
+            print(data_point)
+            kwargs = {"return_tensors": "pt",
+                "truncation": True,
+                "max_length": 512
+            }
+            inputs = tokenizer(data_point['text'], **kwargs)
+            if len(inputs['input_ids'][0]) < 5:
+                continue
+            
             # Maintain the number of traversed points
             n += 1
             # 3a) if encoder, go through datapoints one by one
             if encoder:    
                 # Retrieve the BPC for the current data point
-                res = encoder_full_loss(tokenizer, model, data_point['text'])
+                res = encoder_full_loss(inputs, tokenizer, model, data_point['text'])
 
             # 3b) if decoder, still go one by one since the avg needs to be
             # calculated for every single data point
