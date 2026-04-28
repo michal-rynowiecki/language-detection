@@ -13,7 +13,7 @@ import json
 import datasets
 from huggingface_hub import ModelCard
 
-from transformers import AutoModelForMaskedLM, AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForMaskedLM, AutoModelForCausalLM, AutoTokenizer, CanineTokenizer, CanineModel
 
 '''
 Takes in a model for Masked LM and returns the loss obtained by
@@ -124,11 +124,11 @@ def within_range(bpcs, prob):
 
 def lang_len(lm, alpha=0.1, rang=5, encoder=True):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    tokenizer = AutoTokenizer.from_pretrained(lm)
 
     # load in the model based on if its an encoder or not
     ModelClass = AutoModelForMaskedLM if encoder else AutoModelForCausalLM
     model = ModelClass.from_pretrained(lm,trust_remote_code=True).to(device)
+    tokenizer = AutoTokenizer.from_pretrained(lm)
 
     # Open files for writing in data
     dir_path = Path(paths.DATA_DIR) / "lang_lengths" / lm
@@ -151,6 +151,7 @@ def lang_len(lm, alpha=0.1, rang=5, encoder=True):
         (any(elem in model_languages for elem in a[1]), a)
         for a in languages
     ]
+    #languages_to_check = [(True, ('eng_Latn', 1))]
     
     len_dict = {}
     for present, language in languages_to_check:
@@ -203,6 +204,8 @@ def lang_len(lm, alpha=0.1, rang=5, encoder=True):
 
                 # Write JSON to the language presence corresponding file
                 with open(dir_path / f"{alpha}_{rang}_{present}.json", "a") as f:
-                    json.dump({language[0]: {"n": n, "avg_bpc": avg_val}}, f)
+                    q = np.quantile(bpc, [0.25, 0.5, 0.75])
+                    print(q)
+                    json.dump({language[0]: {"n": n, "avg_bpc": avg_val, "0.25q":q[0], "0.5q": q[1], "0.75q:":q[2]}}, f)
                     f.write("\n")
                 break

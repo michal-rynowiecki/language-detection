@@ -39,7 +39,7 @@ for entry in sorted_models['train']:
         main_tokenizer = str(tokenizer.backend_tokenizer.model).split('(')[0]
         path = pre_tokenizer_types + [main_tokenizer]
         print(path)
-        pathsfile.write(lm + '\t' + langs + '\t' + str(path) + '\n')
+        pathsfile.write(lm + '\t' + str(langs) + '\t' + str(path) + '\n')
         tokenizers.append(tokenizer)
 
 

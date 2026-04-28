@@ -43,7 +43,7 @@ def main():
     lang_len(args.language_model, alpha, rang, encoder)
 
     #calc_stats_single('/Users/michal/Projects/Thesis/data/lang_lengths/bert-base-multilingual-cased')
-    #plot_bpc_vs_n('/Users/michal/Projects/Thesis/data/lang_lengths/bert-base-multilingual-cased/0.01_5_True_present.json')
+    #plot_bpc_vs_n('/Users/michal/Projects/Thesis/data/lang_lengths/bert-base-multilingual-cased/0.01_5_False_present.json')
     #plot_true_vs_false('/Users/michal/Projects/Thesis/data/lang_lengths/bert-base-multilingual-cased/0.001_20_True_present.json', '/Users/michal/Projects/Thesis/data/lang_lengths/bert-base-multilingual-cased/0.001_20_False_present.json')
 
 main()
